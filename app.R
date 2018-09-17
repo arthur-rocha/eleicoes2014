@@ -1,36 +1,65 @@
 ##App eleições 2014 - Brasil
-options(encoding = "utf-8",OutDec = ",")
+options(encoding = "utf-8")
 library(shiny)
 library(ggplot2)
 library(dplyr)
 library(data.table)
 library(magrittr)
 library(shinythemes)
-#Começo UI--------------------------------------------------------------
+library(curl)
+#Come?o UI--------------------------------------------------------------
 ui <- navbarPage(title = "Deputados Federais e Estaduais elegidos no Brasil em 2014",theme = shinytheme("flatly"),
-   
-   
-   
-   sidebarLayout(
-      sidebarPanel(
-         selectInput(inputId = "estado",
-                     label = "Escolha o Estado",
-                     choices = c("AC","AL","AM","AP","BA","BR","CE","DF",
-                                 "ES","GO","MA","MG","MS","MT","PA","PB",
-                                 "PE","PI","PR","RJ","RN","RO","RR","RS",
-                                 "SC","SE","SP","TO")),
-         selectInput(inputId = "municipio",
-                     label = "Escolha o municipio",
-                     choices = "Municipio")
-                       ),
-         
-      
-      
-      
-      mainPanel(
-         plotOutput("Plot")
-      )
-   )
+                 tabPanel(title = "Gráficos",icon = icon("signal"),
+                          
+                          
+                          sidebarLayout(
+                            sidebarPanel(
+                              selectInput(inputId = "estado",
+                                          label = "Escolha o estado",
+                                          choices = c("AC","AL","AM","AP","BA","BR","CE","DF",
+                                                      "ES","GO","MA","MG","MS","MT","PA","PB",
+                                                      "PE","PI","PR","RJ","RN","RO","RR","RS",
+                                                      "SC","SE","SP","TO")),
+                              selectInput(inputId = "municipio",
+                                          label = "Escolha o município",
+                                          choices = "Municipio")
+                            ),
+                            
+                            
+                            
+                            
+                            mainPanel(
+                              plotOutput("Plot")
+                            )
+                          ), 
+                          hr(),
+                          print("Feito por Arthur Rocha e Omar Pereira")
+                 ),
+                 tabPanel(title = "Sobre",icon = icon("info-circle"),
+                          tags$ul(
+                            tags$h2("Autores:"),
+                            tags$hr(style="border-color:darkblue;")),
+                          
+                          tags$ul(
+                            tags$h3("Arthur C. Moura Rocha"),
+                            tags$hr(),
+                            tags$li("Graduando em Estatística - UEM"),
+                            tags$h4(
+                              tags$a("Github",href="https://github.com/arthur-rocha") )
+                          ),
+                          tags$ul(
+                            tags$h3("Omar C. Neves Pereira"),
+                            tags$hr(),
+                            tags$li("Pós doutor em Bioestatística - UEM"),
+                            tags$li("Doutor em Agronomia"),
+                            tags$li("Mestre em Física"),
+                            tags$li("Mestre em Agronomia"),
+                            tags$li("Bacharel em Física"),
+                            tags$li("Engenheiro Agrônomo"),
+                            tags$h4(
+                              tags$a("Github",href="https://github.com/omarcnpereira") )
+                          )
+                 )
 )
 # SERVER ---------------------------------------------------
 server <- function(input, output,session) {
@@ -68,37 +97,41 @@ server <- function(input, output,session) {
     updateSelectInput(session, "municipio",choices =sort(dados$NOME_MUNICIPIO))
     return(dados)
   })
-   output$Plot <- renderPlot({
-     
-     municipio = input$municipio
-     
-     dados() %>%
-       filter(NOME_MUNICIPIO==municipio) %>%
-       mutate(DESC_SIT_CAND_TOT = factor(DESC_SIT_CAND_TOT,
-                                         levels = c("ELEITO POR MÉDIA",
-                                                    "ELEITO POR QP","SUPLENTE",
-                                                    "NÃO ELEITO")),
-              NOME_URNA_CANDIDATO = factor(NOME_URNA_CANDIDATO)) %>%
-       group_by(DESCRICAO_CARGO) %>%
-       ggplot(aes(reorder(NOME_URNA_CANDIDATO,PROP_VOT,FUN = max),
-                  PROP_VOT,fill=DESC_SIT_CAND_TOT,label=paste0(PROP_VOT,"%")))+
-       geom_col()+
-       theme_minimal()+
-       ylab("Proporção dos votos da cidade (%)") +
-       theme(axis.title.y = element_blank(),
-             title = element_text(hjust = 60,face = 2),
-             legend.position = "bottom")+
-       coord_flip()+
-       facet_wrap(~DESCRICAO_CARGO,scales = "free")+
-       ylim(c(0,100))+
-       geom_text(aes(label=prop.total),x = .8,y=50,fontface=2)+
-       ggtitle(paste("Candidatos mais votados de",municipio))+
-       scale_fill_manual("Situação",
-                         values = c("skyblue2","lightblue4","lightgreen","salmon"),
-                         drop=F)+
-       geom_text(hjust="inward")
-   })
-
+  output$Plot <- renderPlot({
+    
+    municipio = input$municipio
+    
+    dados() %>%
+      filter(NOME_MUNICIPIO==municipio) %>%
+      mutate(DESC_SIT_CAND_TOT = factor(DESC_SIT_CAND_TOT,
+                                        levels = c("ELEITO POR MÉDIA",
+                                                   "ELEITO POR QP","SUPLENTE",
+                                                   "NÃO ELEITO")),
+             NOME_URNA_CANDIDATO = factor(NOME_URNA_CANDIDATO),
+             prop.total = gsub(pattern = ":",replacement = " : ", prop.total)) %>%
+      group_by(DESCRICAO_CARGO) %>%
+      ggplot(aes(reorder(NOME_URNA_CANDIDATO,PROP_VOT,FUN = max),
+                 PROP_VOT,fill=DESC_SIT_CAND_TOT,label=paste0(PROP_VOT,"%")))+
+      geom_col()+
+      theme_minimal()+
+      coord_flip()+
+      facet_wrap(~DESCRICAO_CARGO,scales = "free_y")+
+      theme(axis.title.y = element_blank(),
+            axis.title.x = element_text(color = 2),
+            title = element_text(hjust = 60,face = 2),
+            legend.position = "bottom")+
+      #xlab("Propaaa") +
+      ylim(c(0,100))+
+      labs(title=paste("Candidatos mais votados de",municipio),
+           subtitle= "Proporção de votos da cidade (%)",
+           caption="Fonte: TSE ") +
+      geom_text(aes(label=prop.total),x = .8,y=50,fontface=2)+
+      scale_fill_manual("Situação",
+                        values = c("skyblue2","lightblue4","lightgreen","salmon"),
+                        drop=F)+
+      geom_text(hjust="inward")
+  })
+  
 }
 
 # Run the application 
