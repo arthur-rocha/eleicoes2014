@@ -1,5 +1,5 @@
 ##App eleições 2014 - Brasil
-options(encoding = "utf-8")
+options(encoding = "utf-8",OutDec = ",")
 library(shiny)
 library(ggplot2)
 library(dplyr)
@@ -7,7 +7,7 @@ library(data.table)
 library(magrittr)
 library(shinythemes)
 library(curl)
-#Come?o UI--------------------------------------------------------------
+#UI --------------------------------------------------------------
 ui <- navbarPage(title = "Deputados Federais e Estaduais elegidos no Brasil em 2014",theme = shinytheme("flatly"),
                  tabPanel(title = "Gráficos",icon = icon("signal"),
                           
@@ -19,7 +19,7 @@ ui <- navbarPage(title = "Deputados Federais e Estaduais elegidos no Brasil em 2
                                           choices = c("AC","AL","AM","AP","BA","BR","CE","DF",
                                                       "ES","GO","MA","MG","MS","MT","PA","PB",
                                                       "PE","PI","PR","RJ","RN","RO","RR","RS",
-                                                      "SC","SE","SP","TO")),
+                                                      "SC","SE","SP","TO")[-c(6,8)]),  #BR e DF com bug
                               selectInput(inputId = "municipio",
                                           label = "Escolha o município",
                                           choices = "Municipio")
@@ -59,6 +59,10 @@ ui <- navbarPage(title = "Deputados Federais e Estaduais elegidos no Brasil em 2
                             tags$h4(
                               tags$a("Github",href="https://github.com/omarcnpereira") )
                           )
+                 ),
+                 tags$style(type="text/css",
+                            ".shiny-output-error { visibility: hidden; }",
+                            ".shiny-output-error:before { visibility: visible; content: 'Buscando dados... Aguarde'; }"
                  )
 )
 # SERVER ---------------------------------------------------
@@ -120,7 +124,6 @@ server <- function(input, output,session) {
             axis.title.x = element_text(color = 2),
             title = element_text(hjust = 60,face = 2),
             legend.position = "bottom")+
-      #xlab("Propaaa") +
       ylim(c(0,100))+
       labs(title=paste("Candidatos mais votados de",municipio),
            subtitle= "Proporção de votos da cidade (%)",
